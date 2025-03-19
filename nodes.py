@@ -10,10 +10,8 @@ class NCAudioRecorderNode:
         return {    
             "required": {
                 "base64_data": ("STRING", {"multiline": False}),
-                "record_mode": (["press_and_hold", "start_and_stop"],{"default":"press_and_hold",}),
+                "record_mode": (["press_and_hold", "start_and_stop"],{"default":"start_and_stop",}),
                 "record_duration_max": ("INT",{"default": 15, "min": 1, "max": 60, "step": 1,}),
-                "loop": ("BOOLEAN", {"default": False}),
-                "loop_interval": ("FLOAT", {"default": 1.0, "min": 0.5, "max": 60.0, "step": 0.1,}),
                 "new_generation_after_recording": ("BOOLEAN", {"default": False}),
             }
         }
@@ -23,7 +21,7 @@ class NCAudioRecorderNode:
     CATEGORY = "NCNodes/audio"
     FUNCTION = "process_audio"
 
-    def process_audio(self, base64_data, record_mode, record_duration_max, loop, loop_interval, new_generation_after_recording):
+    def process_audio(self, base64_data, record_mode, record_duration_max, new_generation_after_recording):
         audio_data = base64.b64decode(base64_data)
         input_buffer = io.BytesIO(audio_data)
         output_buffer = io.BytesIO()
@@ -41,7 +39,7 @@ class NCAudioRecorderNode:
         return (audio,)
     
     @classmethod
-    def IS_CHANGED(s, base64_data, record_mode, record_duration_max, loop, loop_interval, new_generation_after_recording):
+    def IS_CHANGED(s, base64_data, record_mode, record_duration_max, new_generation_after_recording):
         m = hashlib.sha256()
         m.update(base64_data.encode())
         return m.hexdigest()
