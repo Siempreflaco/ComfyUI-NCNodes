@@ -177,6 +177,8 @@ app.registerExtension({
                     }
                 };
 
+                switchButtonText();
+
                 const onRemoved = this.onRemoved;
                 this.onRemoved = function () {
                     if (recordingTimer) {
