@@ -46,10 +46,10 @@ app.registerExtension({
                 // Create a custom button element
                 const recordBtn = document.createElement("div");
                 recordBtn.textContent = "";
-                recordBtn.classList.add("comfy-nc-big-button");
+                recordBtn.classList.add("recordButton");
 
                 const countdownDisplay = document.createElement("div");
-                countdownDisplay.classList.add("comfy-nc-value-small-display");
+                countdownDisplay.classList.add("countdownDisplay");
 
                 // Add the button and tag to the node using addDOMWidget
                 this.addDOMWidget("button_widget", "RECORD", recordBtn);
@@ -85,6 +85,7 @@ app.registerExtension({
 
                     audioChunks = [];
                     isRecording = true;
+                    recordBtn.classList.replace('recordButton', 'recordButtonRecording');
 
                     navigator.mediaDevices.getUserMedia({ audio: true })
                         .then((stream) => {
@@ -171,6 +172,8 @@ app.registerExtension({
                             recordingTimer = null;
                         }
 
+                        recordBtn.classList.replace('recordButtonRecording', 'recordButton');
+
                         countdownDisplay.textContent = ''; // Clear countdown display
 
                         switchButtonText();
@@ -196,7 +199,7 @@ app.registerExtension({
 // Add custom styles for the button
 const style = document.createElement("style");
 style.textContent = `
-    .comfy-nc-big-button {
+    .recordButton {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -213,22 +216,40 @@ style.textContent = `
         transition: background-color 0.3s, transform 0.2s;
     }
 
-    .comfy-nc-big-button:hover {
+    .recordButton:hover {
         background-color: #45a049;
     }
 
-    .comfy-nc-big-button:active {
+    .recordButton:active {
         background-color: #3e8e41;
     }
 
-    .comfy-nc-value-display {
+    .recordButtonRecording {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         margin-top: 20px;
+        height: 40px !important;
+        background-color: #af544c;
+        color: white;
         font-size: 16px;
         font-weight: bold;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
         text-align: center;
+        transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .recordButtonRecording:hover {
+        background-color: #a04e45;
+    }
+
+    .recordButtonRecording:active {
+        background-color: #8e413e;
     }
     
-    .comfy-nc-value-small-display {
+    .countdownDisplay {
         margin-top: 20px;
         font-size: 14px;
         text-align: center;
