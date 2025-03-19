@@ -44,55 +44,33 @@ app.registerExtension({
                 }
 
                 // Create a custom button element
-                const startBtn = document.createElement("div");
-                startBtn.textContent = "";
-                startBtn.classList.add("comfy-nc-big-button");
+                const recordBtn = document.createElement("div");
+                recordBtn.textContent = "";
+                recordBtn.classList.add("comfy-nc-big-button");
 
                 const countdownDisplay = document.createElement("div");
                 countdownDisplay.classList.add("comfy-nc-value-small-display");
 
                 // Add the button and tag to the node using addDOMWidget
-                this.addDOMWidget("button_widget", "Press and Hold to Record", startBtn);
+                this.addDOMWidget("button_widget", "RECORD", recordBtn);
                 this.addDOMWidget("text_widget", "Countdown Display", countdownDisplay);
 
-
-                // Retrieve settings from widgets
-                const recordModeWidget = currentNode.widgets.find(w => w.name === 'record_mode');
-                const newGenerationWidget = currentNode.widgets.find(w => w.name === 'new_generation_after_recording');
-
-
-                if (recordModeWidget) {
-                    recordModeWidget.callback = (value) => {
-                        switchButtonMode(recordModeWidget.value);
-                        // Save the current record mode to localStorage
-                        localStorage.setItem('nc_audio_recorder_record_mode', recordModeWidget.value);
-                    };
-                }
-
-                const switchButtonMode = (mode) => {
-                    if (mode === 'press_and_hold') {
-                        startBtn.innerText = isRecording ? 'Recording...' : 'Press and Hold to Record';
-                        startBtn.onmousedown = startRecording;
-                        startBtn.onmouseup = () => stopRecording(true); // manual stop
-                        startBtn.onmouseleave = () => stopRecording(true); // manual stop
-                        startBtn.onclick = null;
-                    } else if (mode === 'start_and_stop') {
+                const switchButtonText = () => {
                         if (isRecording) {
-                            startBtn.innerText = 'STOP';
+                            recordBtn.innerText = 'STOP';
                         } else {
-                            startBtn.innerText = 'START';
+                            recordBtn.innerText = 'RECORD';
                         }
-                        startBtn.onmousedown = null;
-                        startBtn.onmouseup = null;
-                        startBtn.onmouseleave = null;
-                        startBtn.onclick = () => {
+                        recordBtn.onmousedown = null;
+                        recordBtn.onmouseup = null;
+                        recordBtn.onmouseleave = null;
+                        recordBtn.onclick = () => {
                             if (isRecording) {
                                 stopRecording(true); // manual stop
                             } else {
                                 startRecording();
                             }
                         };
-                    }
                 };
 
                 const startRecording = () => {
@@ -137,31 +115,12 @@ app.registerExtension({
 
                                     console.log('Audio recording saved.');
 
-                                    // Trigger a new queue job if `new_generation_after_recording` is enabled
-                                    if (newGenerationWidget && newGenerationWidget.value === true) {
-                                        // Locate the div container that holds the activation button
-                                        const buttonContainer = document.querySelector('div[data-testid="queue-button"]');
-
-                                        if (buttonContainer) {
-                                            
-                                            const queueButton = buttonContainer.querySelector('button[data-pc-name="pcbutton"]');
-                                            if (queueButton) {
-                                                queueButton.click();
-                                                console.log('New queue generation triggered.');
-                                            } else {
-                                                console.warn("Queue button not found inside container.");
-                                            }
-                                        } else {
-                                            console.warn("Queue button container not found.");
-                                        }
-                                    }
-
                                 };
                                 reader.readAsDataURL(audioBlob);
                             };
                             mediaRecorder.start();
 
-                            switchButtonMode(recordModeWidget.value);
+                            switchButtonText();
 
                             console.log('Recording started...');
 
@@ -214,17 +173,9 @@ app.registerExtension({
 
                         countdownDisplay.textContent = ''; // Clear countdown display
 
-                        switchButtonMode(recordModeWidget.value);
+                        switchButtonText();
                     }
                 };
-
-                // Initialize button mode based on the record mode
-                // Load settings from localStorage if available
-                const savedRecordMode = localStorage.getItem('nc_audio_recorder_record_mode');
-                if (savedRecordMode) {
-                    recordModeWidget.value = savedRecordMode;
-                }
-                switchButtonMode(recordModeWidget.value);
 
                 const onRemoved = this.onRemoved;
                 this.onRemoved = function () {
