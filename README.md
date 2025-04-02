@@ -25,6 +25,11 @@ The Image Processor outputs in RGBA mode. When linking to anything that requires
 
 ![Image Processor Node](https://github.com/user-attachments/assets/6b70634c-5505-470f-aae1-a413feb8fe4b)
 
+Calculate the border per image resolution
+
+![Image Processor Node calculate border](https://github.com/user-attachments/assets/571760a8-f5b2-4cfd-b0b2-763ee958991f)
+
+
 **Line Counter and Increment Int**
 
 ![Prompt Select](https://github.com/user-attachments/assets/bebe87b9-d1a1-42d2-9f10-a0c4a44cec8b)
