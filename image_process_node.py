@@ -1,0 +1,163 @@
+import torch
+import torchvision.transforms.v2 as T
+from PIL import Image
+from transparent_background import Remover
+import torch.nn.functional as F
+
+class NCImageProcessor:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "mode": (["base", "fast", "base-nightly"],),
+                "use_jit": ("BOOLEAN", {"default": True}),
+                "resolution": ("INT", {
+                    "default": 1024, 
+                    "min": 64, 
+                    "max": 4096, 
+                    "step": 1,
+                    "display": "number"
+                }),
+                "border": ("INT", {
+                    "default": 64, 
+                    "min": 0, 
+                    "max": 1024, 
+                    "step": 1,
+                    "display": "number"
+                }),
+            },
+            "optional": {
+                "background": (["Alpha", "black", "white", "gray", "green", "blue", "red"], {"default": "Alpha", "tooltip": "Choose background color"})
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK",)
+    RETURN_NAMES = ("IMAGE", "MASK",)
+
+    FUNCTION = "execute"
+    CATEGORY = "NCNodes/ImageProcessing"
+    
+    def execute(self, image, mode, use_jit, resolution=1024, border=64, background="Alpha"):
+        background_colors = {
+            "Alpha": (0, 0, 0, 0),
+            "black": (0, 0, 0, 255),
+            "white": (255, 255, 255, 255),
+            "gray": (169, 169, 169, 255),
+            "green": (0, 255, 0, 255),
+            "blue": (0, 0, 255, 255),
+            "red": (255, 0, 0, 255),
+        }
+
+        bg_color = background_colors.get(background, (0, 0, 0, 0))
+        target_size = resolution - (border * 2)
+
+        session = Remover(mode=mode, jit=use_jit)
+
+        image = image.permute([0, 3, 1, 2])
+        output = []
+        masks = []
+        for img in image:
+            img = T.ToPILImage()(img)
+            # First process to get the transparent image (alpha mask)
+            img = session.process(img)
+
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+
+            # Store the alpha mask before applying background
+            alpha_mask = img.split()[-1]
+            masks.append(T.ToTensor()(alpha_mask))
+
+            # Apply background color only after cropping
+            output.append(T.ToTensor()(img))
+
+        output = torch.stack(output, dim=0)
+        output = output.permute([0, 2, 3, 1])
+        masks = torch.stack(masks, dim=0)
+        masks = masks.permute([0, 2, 3, 1]).squeeze(-1)
+
+        final_images = []
+        final_masks = []
+
+        for i in range(masks.shape[0]):
+            single_mask = masks[i]
+            mask_non_zero = single_mask > 0.5  # Threshold the mask
+
+            # Find non-zero coordinates in the mask
+            non_zero_coords = torch.nonzero(mask_non_zero)
+
+            if len(non_zero_coords) > 0:
+                # Find bounding box: min/max for y (height) and x (width)
+                min_y, min_x = non_zero_coords.min(dim=0)[0]
+                max_y, max_x = non_zero_coords.max(dim=0)[0]
+
+                # Crop both the image and the mask using the bounding box
+                cropped_image = output[i, min_y:max_y+1, min_x:max_x+1, :]
+                cropped_mask = single_mask[min_y:max_y+1, min_x:max_x+1]
+
+                # Now apply the background color to the cropped image
+                if background != "Alpha":
+                    # Convert to PIL for processing
+                    cropped_pil = T.ToPILImage()(cropped_image.permute(2, 0, 1))
+                    bg_img = Image.new('RGBA', cropped_pil.size, bg_color)
+                    bg_img.paste(cropped_pil, (0, 0), cropped_pil)
+                    cropped_image = T.ToTensor()(bg_img).permute(1, 2, 0)
+
+                # Pad to square (1:1) aspect ratio
+                h, w = cropped_image.shape[:2]
+                max_size = max(h, w)
+                
+                # Calculate padding amounts
+                pad_h = (max_size - h) // 2
+                pad_w = (max_size - w) // 2
+                
+                # Pad image (CHW format)
+                padded_image = torch.zeros((max_size, max_size, 4)) if background == "Alpha" else torch.ones((max_size, max_size, 4))
+                if background != "Alpha":
+                    padded_image[:, :] = torch.tensor([bg_color[0]/255, bg_color[1]/255, bg_color[2]/255, bg_color[3]/255])
+                padded_image[pad_h:pad_h+h, pad_w:pad_w+w] = cropped_image
+                
+                # Pad mask
+                padded_mask = torch.zeros((max_size, max_size))
+                padded_mask[pad_h:pad_h+h, pad_w:pad_w+w] = cropped_mask
+
+                # Convert to PIL for resizing
+                padded_pil = T.ToPILImage()(padded_image.permute(2, 0, 1))
+                padded_mask_pil = Image.fromarray((padded_mask.numpy() * 255).astype('uint8'))
+
+                # Resize to target size (resolution - border*2)
+                resized_pil = padded_pil.resize((target_size, target_size), Image.LANCZOS)
+                resized_mask_pil = padded_mask_pil.resize((target_size, target_size), Image.LANCZOS)
+
+                # Convert back to tensor
+                resized_image = T.ToTensor()(resized_pil).permute(1, 2, 0)
+                resized_mask = T.ToTensor()(resized_mask_pil).squeeze(0)
+
+                # Add border to reach final resolution
+                final_image = torch.zeros((resolution, resolution, 4)) if background == "Alpha" else torch.ones((resolution, resolution, 4))
+                if background != "Alpha":
+                    final_image[:, :] = torch.tensor([bg_color[0]/255, bg_color[1]/255, bg_color[2]/255, bg_color[3]/255])
+                
+                final_mask = torch.zeros((resolution, resolution))
+                
+                # Place the resized image in the center with border
+                final_image[border:border+target_size, border:border+target_size] = resized_image
+                final_mask[border:border+target_size, border:border+target_size] = resized_mask
+
+                final_images.append(final_image)
+                final_masks.append(final_mask)
+
+        # Stack the final images and masks to maintain batch shape
+        if len(final_images) > 0:
+            final_images = torch.stack(final_images, dim=0)
+            final_masks = torch.stack(final_masks, dim=0)
+        else:
+            # If no non-zero masks found, return empty tensors with target resolution
+            final_images = torch.zeros((output.shape[0], resolution, resolution, 4))
+            final_masks = torch.zeros((output.shape[0], resolution, resolution))
+
+        return (final_images, final_masks,)
