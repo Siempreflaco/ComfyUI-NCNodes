@@ -11,9 +11,9 @@ Clone into custom nodes directory in ComfyUI:
 
 **Install dependencies for env:**
 
-'cd ComfyUI-NCNodes'
+`cd ComfyUI-NCNodes`
 
-'pip install -r requirements.txt'
+`pip install -r requirements.txt`
 
 ---
 
