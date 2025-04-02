@@ -3,17 +3,17 @@ Clone into custom nodes directory in ComfyUI:
 
 `git clone https://github.com/Siempreflaco/ComfyUI-NCNodes.git`
 
-**Install dependencies for env:**
-
-`cd ComfyUI-NCNodes`
-
-`pip install -r requirements.txt`
-
-**For portable:**
+**Install dependencies for portable:**
 
 `cd ComfyUI-NCNodes`
 
 `..\..\..\python_embeded\python.exe -m pip install -r requirements.txt`
+
+**Install dependencies for env:**
+
+'cd ComfyUI-NCNodes'
+
+'pip install -r requirements.txt'
 
 ---
 
