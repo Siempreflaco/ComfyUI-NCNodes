@@ -1,6 +1,6 @@
-from .nodes import *
+from .utility_nodes import *
 from .audio_nodes import *
-from .image_process_node import *
+from .image_nodes import *
 
 __version__ = "1.0.0"
 
