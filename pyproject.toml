@@ -10,6 +10,6 @@ Repository = "https://github.com/Siempreflaco/ComfyUI-NCNodes"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "ncreature"
 DisplayName = "ComfyUI-NCNodes"
 Icon = ""
