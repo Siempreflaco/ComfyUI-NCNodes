@@ -26,6 +26,7 @@ class Load3DMesh:
     FUNCTION = "load"
     CATEGORY = "NCNodes/3D"
     DESCRIPTION = "List 3D files in the output folder and loads selected file as trimesh."
+    EXPERIMENTAL = True # Need to find a way to refresh the list of files if anything changes in the output directory
 
     def load(self, mesh):
         mesh_file = folder_paths.get_annotated_filepath(mesh, output_dir)
