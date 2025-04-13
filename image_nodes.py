@@ -2,6 +2,7 @@ import torch
 import torchvision.transforms.v2 as T
 from PIL import Image
 from transparent_background import Remover
+from comfy.utils import ProgressBar
 
 class NCImageProcessor:
     def __init__(self):
@@ -52,6 +53,10 @@ class NCImageProcessor:
             "red": (255, 0, 0, 255),
         }
 
+        # Initialize progress bar
+        total_steps = image.shape[0] * 4 # 4 main steps per image
+        progress_bar = ProgressBar(total_steps)
+
         bg_color = background_colors.get(background, (0, 0, 0, 0))
         target_size = resolution - (border * 2)
 
@@ -60,17 +65,22 @@ class NCImageProcessor:
         image = image.permute([0, 3, 1, 2])
         output = []
         masks = []
-        for img in image:
+
+        for img_idx, img in enumerate(image):
             img = T.ToPILImage()(img)
-            # Process to remove background (always needed)
+
+            # Step 1: Process to remove background
             img = session.process(img)
+            progress_bar.update_absolute(img_idx * 4 + 1)
+
             if img.mode != 'RGBA':
                 img = img.convert('RGBA')
 
-            # Store alpha mask
+            # Step 2: Store alpha mask
             alpha_mask = img.split()[-1]
             masks.append(T.ToTensor()(alpha_mask))
             output.append(T.ToTensor()(img))
+            progress_bar.update_absolute(img_idx * 4 + 2)
 
         output = torch.stack(output, dim=0).permute([0, 2, 3, 1])  # (N,H,W,C)
         masks = torch.stack(masks, dim=0).permute([0, 2, 3, 1]).squeeze(-1)  # (N,H,W)
@@ -83,7 +93,7 @@ class NCImageProcessor:
             current_mask = masks[i]
 
             if crop:
-                # Only crop if enabled
+                # Step 3: Crop if enabled
                 mask_non_zero = current_mask > 0.5
                 non_zero_coords = torch.nonzero(mask_non_zero)
                 
@@ -92,6 +102,8 @@ class NCImageProcessor:
                     max_y, max_x = non_zero_coords.max(dim=0)[0]
                     current_image = current_image[min_y:max_y+1, min_x:max_x+1, :]
                     current_mask = current_mask[min_y:max_y+1, min_x:max_x+1]
+
+            progress_bar.update_absolute(i * 4 + 3)
 
             # Apply background color (if not Alpha)
             if background != "Alpha":
@@ -132,6 +144,9 @@ class NCImageProcessor:
 
             final_images.append(final_image)
             final_masks.append(final_mask)
+
+            # Step 4: Complete processing for this image
+            progress_bar.update_absolute((i + 1) * 4)
 
         # Handle empty batch case
         if len(final_images) == 0:
