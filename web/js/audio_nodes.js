@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 app.registerExtension({
-    name: 'NCAudioRecorderNode',
+    name: 'NCNodes.AudioRecorder',
     async getCustomWidgets(app) 
     {
         return {
