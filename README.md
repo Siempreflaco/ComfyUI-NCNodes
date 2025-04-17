@@ -29,6 +29,9 @@ Calculate the border per image resolution
 
 ![Image Processor Node calculate border](https://github.com/user-attachments/assets/571760a8-f5b2-4cfd-b0b2-763ee958991f)
 
+**Load 3D Mesh From Outputs**
+
+![Load3DFromOutputNode](https://github.com/user-attachments/assets/5141564f-4130-4e62-99e9-4869c8fe41f0)
 
 **Line Counter and Increment Int**
 
