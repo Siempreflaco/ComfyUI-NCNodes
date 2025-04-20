@@ -1,7 +1,7 @@
 [project]
 name = "ncnodes"
 description = "NODES: Audio Recorder, Line Counter, Increment INT, Image Processor, Load 3D Mesh From Outputs"
-version = "1.2.2"
+version = "1.2.3"
 license = {file = "LICENSE"}
 dependencies = ["ffmpeg-python", "transparent_background"]
 
